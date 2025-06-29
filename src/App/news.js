@@ -56,9 +56,14 @@ export default function NewsFeed() {
             });
             
             if (result) {
-                const resultNews = result.filter((item) => item.distordia === '1.1');
+                const resultNews = result.filter((item) => 
+                    //item.distordia === '1.1'
+                    item.distordia-status === 'official' &&
+                    item.distordia-type === 'distordia-post'
+                );
                 //const resultActive = resultNews.filter((item) => item.status === '1');
-                setNews(resultActive);
+                //setNews(resultActive);
+                setNews(resultNews);
             }
 
         } catch (error) {
