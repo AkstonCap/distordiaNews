@@ -12,9 +12,9 @@ export function fetchAssetsByNamespace(namespace) {
     try {
       // Use the correct Nexus API call pattern
       const response = await apiCall(
-        'register/list/assets:asset',
+        'register/list/assets:asset/distordia-status,distordia-type,Text',
         { 
-            where: `namespace=${namespace};results.distordia=news;results.dStatus=1`,  
+            //where: `results.name=${namespace}::* && results.distordia-type=post && results.distordia-status=official`,  
             // Add any other parameters you need here 
         }
       );
