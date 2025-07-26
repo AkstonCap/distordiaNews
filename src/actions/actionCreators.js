@@ -20,6 +20,11 @@ export const switchMyNamespace = (namespace) => ({
   payload: namespace,
 });
 
+export const setSelectedNamespace = (namespace) => ({
+  type: TYPE.SET_SELECTED_NAMESPACE,
+  payload: namespace,
+});
+
 /*
 export const showConnections = () => ({
   type: TYPE.SHOW_CONNECTIONS,
