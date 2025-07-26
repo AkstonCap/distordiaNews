@@ -20,6 +20,7 @@ import { useSelector, useDispatch } from 'react-redux';
 
 import {
     updateInput,
+    setSelectedNamespace,
 } from 'actions/actionCreators';
 
 //import { createAsset } from 'actions/createAsset';
@@ -27,6 +28,68 @@ import {
 const SearchField = styled(TextField)({
     maxWidth: 200,
   });
+
+const NewsPost = styled.div({
+    backgroundColor: '#ffffff',
+    border: '1px solid #e1e8ed',
+    borderRadius: '12px',
+    padding: '16px',
+    marginBottom: '16px',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+    '&:hover': {
+        backgroundColor: '#f7f9fa',
+        borderColor: '#1da1f2',
+        transform: 'translateY(-2px)',
+        boxShadow: '0 4px 12px rgba(29, 161, 242, 0.15)',
+    }
+});
+
+const PostHeader = styled.div({
+    display: 'flex',
+    alignItems: 'center',
+    marginBottom: '12px',
+});
+
+const UserInfo = styled.div({
+    display: 'flex',
+    flexDirection: 'column',
+});
+
+const UserName = styled.span({
+    fontWeight: 'bold',
+    color: '#1da1f2',
+    fontSize: '15px',
+    cursor: 'pointer',
+    '&:hover': {
+        textDecoration: 'underline',
+    }
+});
+
+const PostTime = styled.span({
+    color: '#657786',
+    fontSize: '13px',
+    marginTop: '2px',
+});
+
+const PostContent = styled.div({
+    fontSize: '15px',
+    lineHeight: '1.5',
+    color: '#14171a',
+    marginBottom: '12px',
+    wordWrap: 'break-word',
+});
+
+const PostFooter = styled.div({
+    borderTop: '1px solid #e1e8ed',
+    paddingTop: '8px',
+});
+
+const AssetAddress = styled.span({
+    color: '#657786',
+    fontSize: '12px',
+    fontFamily: 'monospace',
+});
 
 export default function NewsFeed() {
 
@@ -115,18 +178,44 @@ export default function NewsFeed() {
         }
     };
 
-    const renderNewsTable = (data) => {
+    const handleNamespaceClick = (namespace) => {
+        dispatch(setSelectedNamespace(namespace));
+    };
+
+    const renderNewsFeed = (data) => {
         if (!Array.isArray(data)) {
           return null;
         }
         return data.map((item, index) => (
-          <CatalogueTable
-          key={index}
-          onClick={() => viewAsset(item.address)}
+          <NewsPost
+            key={index}
+            onClick={(e) => {
+                // Prevent namespace click when clicking on the post
+                if (e.target.closest('.username')) return;
+                viewAsset(item.address);
+            }}
           >
-          <td>{ item.address }</td>
-          <td>{ item.text }</td>
-          </CatalogueTable>
+            <PostHeader>
+              <UserInfo>
+                <UserName 
+                    className="username"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        handleNamespaceClick(item.namespace || item.address?.substring(0, 12));
+                    }}
+                >
+                    @{item.namespace || item.address?.substring(0, 12)}...
+                </UserName>
+                <PostTime>{new Date(item.created * 1000).toLocaleString()}</PostTime>
+              </UserInfo>
+            </PostHeader>
+            <PostContent>
+              {item.text}
+            </PostContent>
+            <PostFooter>
+              <AssetAddress>Asset: {item.address}</AssetAddress>
+            </PostFooter>
+          </NewsPost>
         ));
       };
 
@@ -142,11 +231,11 @@ export default function NewsFeed() {
             </div>
         </SingleColRow>
         <SingleColRow>
-            <div className="text-center">
+            <div>
                 <FieldSet legend="News Feed">
-                    <tbody>
-                        {renderNewsTable(news)}
-                    </tbody>
+                    <div>
+                        {renderNewsFeed(news)}
+                    </div>
                 </FieldSet>
             </div>
         </SingleColRow>
