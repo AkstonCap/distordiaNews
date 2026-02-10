@@ -1,10 +1,10 @@
-import path from 'path';
-import baseConfig from './webpack.config.babel';
+const path = require('node:path');
+const baseConfig = require('./webpack.config.babel');
 
 const port = 24011;
 const publicPath = `http://localhost:${port}/`;
 
-const config = {
+module.exports = {
   ...baseConfig,
   devtool: 'eval-source-map',
   devServer: {
@@ -20,5 +20,3 @@ const config = {
     },
   },
 };
-
-export default config;

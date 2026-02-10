@@ -3,7 +3,7 @@
   "displayName": "Distordia News",
   "version": "0.1.0",
   "targetWalletVersion": "3.1.5",
-  "description": "A Nexus Wallet Module template built with React and Redux, also includes boilerplate code and example usages of some Nexus Wallet Module's advanced features",
+  "description": "A Nexus Wallet Module built with React and Redux, allowing anyone to release posts onchain",
   "type": "app",
   "entry": "dist/index.html",
   "icon": "dist/react.svg",
