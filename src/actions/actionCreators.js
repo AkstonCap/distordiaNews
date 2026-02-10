@@ -20,12 +20,16 @@ export const switchMyNamespace = (namespace) => ({
   payload: namespace,
 });
 
-/*
-export const showConnections = () => ({
-  type: TYPE.SHOW_CONNECTIONS,
+export const setReplyTo = (post) => ({
+  type: TYPE.SET_REPLY_TO,
+  payload: post,
 });
 
-export const hideConnections = () => ({
-  type: TYPE.HIDE_CONNECTIONS,
+export const setQuote = (post) => ({
+  type: TYPE.SET_QUOTE,
+  payload: post,
 });
-*/
+
+export const clearComposeContext = () => ({
+  type: TYPE.CLEAR_COMPOSE_CONTEXT,
+});

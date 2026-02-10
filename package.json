@@ -1,7 +1,7 @@
 {
-  "name": "distordia_news",
-  "version": "0.1.0",
-  "description": "Distordia News module environment",
+  "name": "distordia_social",
+  "version": "1.0.0",
+  "description": "Distordia Social - On-chain discussion forum for the Nexus blockchain",
   "devDependencies": {
     "@babel/core": "^7.24.9",
     "@babel/plugin-proposal-optional-chaining": "^7.21.0",

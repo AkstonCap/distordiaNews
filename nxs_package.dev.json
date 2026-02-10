@@ -1,7 +1,7 @@
 {
-  "name": "_dev_distordia_news",
-  "displayName": "Distordia News Development",
-  "description": "Distordia News module development environment",
+  "name": "_dev_distordia_social",
+  "displayName": "Distordia Social Development",
+  "description": "Distordia Social forum module development environment",
   "type": "app",
   "entry": "http://localhost:24011/dev.html",
   "icon": "dist/react.svg"
