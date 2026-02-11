@@ -4,5 +4,5 @@
   "description": "Distordia Social forum module development environment",
   "type": "app",
   "entry": "http://localhost:24011/dev.html",
-  "icon": "dist/react.svg"
+  "icon": "dist/social-logo.svg"
 }

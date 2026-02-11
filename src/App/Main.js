@@ -15,7 +15,22 @@ export default function Main() {
   };
 
   return (
-    <Panel title="Distordia Social" icon={{ url: 'react.svg', id: 'icon' }}>
+    <Panel 
+      title={
+        <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <img src="social-logo.svg" alt="" style={{ width: '28px', height: '28px' }} />
+          <span style={{ 
+            background: 'linear-gradient(135deg, #ef4568 0%, #f0aa21 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            fontWeight: 700,
+            fontSize: '1.1em',
+            letterSpacing: '0.5px',
+            textShadow: '0 0 20px rgba(240, 170, 33, 0.3)'
+          }}>Distordia Social</span>
+        </span>
+      }>
       <div className="text-center">
         <HorizontalTab.TabBar>
           <HorizontalTab

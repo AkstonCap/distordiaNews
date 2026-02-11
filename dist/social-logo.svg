@@ -1,0 +1,37 @@
+<svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ef4568"/>
+      <stop offset="100%" stop-color="#f0aa21"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.22)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Rounded square background -->
+  <rect x="16" y="16" width="224" height="224" rx="52" ry="52" fill="url(#bg)"/>
+  <rect x="16" y="16" width="224" height="224" rx="52" ry="52" fill="url(#shine)"/>
+
+  <!-- Stylised "D" as a chat bubble -->
+  <path d="
+    M 72 72
+    L 72 184
+    L 92 164
+    L 140 164
+    Q 184 164 184 128
+    L 184 108
+    Q 184 72 140 72
+    Z
+  " fill="white" opacity="0.95"/>
+
+  <!-- Chain-link dots inside the D-bubble (blockchain) -->
+  <circle cx="108" cy="108" r="8" fill="url(#bg)"/>
+  <circle cx="140" cy="118" r="8" fill="url(#bg)"/>
+  <circle cx="112" cy="138" r="8" fill="url(#bg)"/>
+
+  <!-- Chain lines connecting the dots -->
+  <line x1="114" y1="112" x2="134" y2="114" stroke="url(#bg)" stroke-width="3.5" stroke-linecap="round"/>
+  <line x1="134" y1="122" x2="118" y2="134" stroke="url(#bg)" stroke-width="3.5" stroke-linecap="round"/>
+</svg>
