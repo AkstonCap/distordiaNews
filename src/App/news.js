@@ -1,155 +1,418 @@
+import { useState, useEffect, useCallback } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { apiCall } from 'nexus-module';
+import { updateInput, setQuote, setReplyTo } from 'actions/actionCreators';
 import {
-    SingleColRow,
-    PageLayout,
-    CatalogueTable,
+  fetchAllVerified,
+  getTierForGenesis,
+  formatAddress,
+  formatTime,
+} from '../utils/verification';
+import {
+  PageLayout,
+  SingleColRow,
+  SearchField,
+  PostCard,
+  PostHeader,
+  PostAuthor,
+  PostNamespace,
+  PostOwner,
+  PostText,
+  PostFooter,
+  PostMeta,
+  PostActions,
+  QuotedPost,
+  QuotedAuthor,
+  QuotedText,
+  BadgeRow,
+  BadgeOfficial,
+  BadgeQuote,
+  BadgeReply,
+  TierBadgeL1,
+  TierBadgeL2,
+  TierBadgeL3,
+  FilterBar,
+  FilterGroup,
+  FilterLabel,
+  FilterSelect,
+  CheckboxLabel,
+  SmallButton,
+  LoadingContainer,
+  Spinner,
+  EmptyState,
+  ErrorMessage,
+  ContentWarning,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalClose,
+  JsonBlock,
 } from '../components/styles';
 
-import { useState, useEffect } from 'react';
-import styled from '@emotion/styled';
+import ComposePost from './ComposePost';
 
-import {
-    FieldSet,
-    apiCall,
-    showSuccessDialog,
-    showErrorDialog,
-    TextField,
-    Button,
-} from 'nexus-module';
+function TierBadge({ tier }) {
+  switch (tier) {
+    case 'L1':
+      return <TierBadgeL1>Verified L1</TierBadgeL1>;
+    case 'L2':
+      return <TierBadgeL2>Verified L2</TierBadgeL2>;
+    case 'L3':
+      return <TierBadgeL3>Verified L3</TierBadgeL3>;
+    default:
+      return null;
+  }
+}
 
-import { useSelector, useDispatch } from 'react-redux';
+function PostItem({
+  post,
+  verifiedMap,
+  quotedPostsCache,
+  onViewAsset,
+  onQuote,
+  onReply,
+}) {
+  const [cwRevealed, setCwRevealed] = useState(false);
 
-import {
-    updateInput,
-} from 'actions/actionCreators';
+  const namespace = post["Creator's namespace"] || post.name?.split(':')[0] || '';
+  const displayName =
+    namespace && namespace !== '*' ? `@${namespace}` : formatAddress(post.owner, 16);
+  const owner = post.owner || '';
+  const text = post.text || post.Text || '';
+  const created = post.created;
+  const isOfficial = post['distordia-status'] === 'official';
+  const replyTo = post['reply-to'] || '';
+  const quoteAddr =
+    post.quote || post['quoted-address'] || post['Quoted address'] || '';
+  const isQuote = !!quoteAddr;
+  const isReply = !!replyTo;
+  const hasCW = !!post.cw;
+  const tier = getTierForGenesis(owner, verifiedMap);
 
-//import { createAsset } from 'actions/createAsset';
+  const quotedPost = quoteAddr ? quotedPostsCache[quoteAddr] : null;
 
-const SearchField = styled(TextField)({
-    maxWidth: 200,
-  });
+  return (
+    <PostCard>
+      <PostHeader>
+        <PostAuthor>
+          <PostNamespace>{displayName}</PostNamespace>
+          <PostOwner>{formatAddress(owner, 16)}</PostOwner>
+        </PostAuthor>
+        <BadgeRow>
+          {tier && <TierBadge tier={tier} />}
+          {isOfficial && <BadgeOfficial>Official</BadgeOfficial>}
+          {isQuote && <BadgeQuote>Quote</BadgeQuote>}
+          {isReply && <BadgeReply>Reply</BadgeReply>}
+        </BadgeRow>
+      </PostHeader>
+
+      {hasCW && !cwRevealed ? (
+        <ContentWarning onClick={() => setCwRevealed(true)}>
+          CW: {post.cw} (click to reveal)
+        </ContentWarning>
+      ) : (
+        <PostText>{text}</PostText>
+      )}
+
+      {isQuote && quotedPost && (
+        <QuotedPost>
+          <QuotedAuthor>
+            @
+            {quotedPost["Creator's namespace"] ||
+              formatAddress(quotedPost.owner, 12)}
+            {getTierForGenesis(quotedPost.owner, verifiedMap) && (
+              <>
+                {' '}
+                <TierBadge
+                  tier={getTierForGenesis(quotedPost.owner, verifiedMap)}
+                />
+              </>
+            )}
+          </QuotedAuthor>
+          <QuotedText>
+            {quotedPost.text || quotedPost.Text || 'Post not found'}
+          </QuotedText>
+        </QuotedPost>
+      )}
+
+      {isQuote && !quotedPost && quoteAddr && (
+        <QuotedPost>
+          <QuotedText style={{ opacity: 0.5, fontStyle: 'italic' }}>
+            Quoted post could not be loaded
+          </QuotedText>
+        </QuotedPost>
+      )}
+
+      <PostFooter>
+        <PostMeta>
+          <span>{formatTime(created)}</span>
+          {post.tags && <span>#{post.tags.split(',')[0]}</span>}
+        </PostMeta>
+        <PostActions>
+          <SmallButton
+            onClick={(e) => {
+              e.stopPropagation();
+              onReply(post);
+            }}
+          >
+            Reply
+          </SmallButton>
+          <SmallButton
+            onClick={(e) => {
+              e.stopPropagation();
+              onQuote(post);
+            }}
+          >
+            Quote
+          </SmallButton>
+          <SmallButton
+            onClick={(e) => {
+              e.stopPropagation();
+              onViewAsset(post.address);
+            }}
+          >
+            On-chain
+          </SmallButton>
+        </PostActions>
+      </PostFooter>
+    </PostCard>
+  );
+}
 
 export default function NewsFeed() {
+  const inputValue = useSelector((state) => state.ui.inputValue);
+  const dispatch = useDispatch();
 
-    const inputValue = useSelector((state) => state.ui.inputValue);
-    const [news, setNews] = useState([]);
+  const [posts, setPosts] = useState([]);
+  const [verifiedMap, setVerifiedMap] = useState({});
+  const [quotedPostsCache, setQuotedPostsCache] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [filter, setFilter] = useState('all');
+  const [namespaceOnly, setNamespaceOnly] = useState(true);
+  const [viewingAsset, setViewingAsset] = useState(null);
+  const [assetData, setAssetData] = useState(null);
 
-    const dispatch = useDispatch();
+  const fetchPosts = useCallback(async () => {
+    setLoading(true);
+    setError(null);
 
-    const fetchAssets = async () => {
-        
-        // distordia-catalogue assets shall have the following fields:
-        // 1. 
-        // 5. status (active/inactive)
-        // 6. distordia (yes/no)
+    try {
+      // Fetch posts and quotes in parallel
+      const [postResults, quoteResults] = await Promise.all([
+        apiCall('register/list/assets:asset', {
+          where:
+            "results.distordia-type=distordia-post AND results.distordia-status=official",
+        }).catch(() => []),
+        apiCall('register/list/assets:asset', {
+          where:
+            "results.distordia-type=distordia-quote AND results.distordia-status=official",
+        }).catch(() => []),
+      ]);
 
-        try {
-            const result = await apiCall(
-                'register/list/assets:asset'//,
-                //{
-                //    where: "results.distordia=yes;",
-                //}
-            ).catch((error) => {
-                showErrorDialog({
-                    message: 'Cannot get assets',
-                    note: error?.message || 'Unknown error',
-                });
+      const allPosts = [...(postResults || []), ...(quoteResults || [])];
+      allPosts.sort((a, b) => (b.created || 0) - (a.created || 0));
+      setPosts(allPosts);
+
+      // Fetch quoted/replied posts
+      const quotedAddresses = allPosts
+        .map(
+          (p) =>
+            p.quote ||
+            p['quoted-address'] ||
+            p['Quoted address'] ||
+            p['reply-to'] ||
+            ''
+        )
+        .filter((addr) => addr && addr !== '0' && addr !== '');
+
+      const uniqueAddresses = [...new Set(quotedAddresses)];
+      const cache = {};
+
+      await Promise.all(
+        uniqueAddresses.map(async (address) => {
+          try {
+            const result = await apiCall('register/get/assets:asset', {
+              address,
             });
-            
             if (result) {
-                const resultNews = result.filter((item) => 
-                    //item.distordia === '1.1'
-                    item.distordia-status === 'official' &&
-                    item.distordia-type === 'distordia-post'
-                );
-                //const resultActive = resultNews.filter((item) => item.status === '1');
-                //setNews(resultActive);
-                setNews(resultNews);
+              cache[address] = result;
             }
+          } catch {
+            // Quoted post not found
+          }
+        })
+      );
 
-        } catch (error) {
-            showErrorDialog({
-                message: 'Cannot get catalogue',
-                note: error?.message || 'Unknown error',
-            });
-        }
+      setQuotedPostsCache(cache);
+
+      // Fetch verification data
+      const verified = await fetchAllVerified();
+      setVerifiedMap(verified);
+    } catch (err) {
+      setError(err?.message || 'Failed to load posts from blockchain');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchPosts();
+  }, [fetchPosts]);
+
+  const handleChange = (e) => {
+    dispatch(updateInput(e.target.value));
+  };
+
+  // Filter posts
+  const filteredPosts = posts.filter((post) => {
+    const namespace = post["Creator's namespace"] || '';
+
+    if (namespaceOnly && (!namespace || namespace === '*')) {
+      return false;
     }
 
-    useEffect(() => {
+    if (filter === 'official' && post['distordia-status'] !== 'official') {
+      return false;
+    }
+    if (filter === 'verified') {
+      const tier = getTierForGenesis(post.owner, verifiedMap);
+      if (!tier) return false;
+    }
+    if (filter === 'namespace' && inputValue) {
+      if (!namespace.toLowerCase().includes(inputValue.toLowerCase())) {
+        return false;
+      }
+    }
 
-        fetchAssets();
+    if (inputValue && filter !== 'namespace') {
+      const text = (post.text || post.Text || '').toLowerCase();
+      const ns = namespace.toLowerCase();
+      const q = inputValue.toLowerCase();
+      if (!text.includes(q) && !ns.includes(q)) {
+        return false;
+      }
+    }
 
-    }, []);
+    return true;
+  });
 
-    const handleChange = (e) => {
-        dispatch(updateInput(e.target.value));
-    };
+  // View asset on-chain
+  const viewAsset = async (address) => {
+    setViewingAsset(address);
+    setAssetData(null);
+    try {
+      const result = await apiCall('register/get/assets:asset', { address });
+      setAssetData(result);
+    } catch (err) {
+      setAssetData({ error: err?.message || 'Failed to load asset' });
+    }
+  };
 
-    const [checkingAssets, setCheckingAssets] = useState(false);
-    
-    const viewAsset = async ( address ) => {
-        
-        if (checkingAssets) {
-            return;
-        }
+  const handleQuote = (post) => {
+    dispatch(setQuote(post));
+  };
 
-        try {
-            setCheckingAssets(true);
-            const result = await apiCall(
-                'register/get/assets:asset',
-                 {
-                    address: address,
-                    //where: 'results.json.distordia=yes'
-                 }
-            );
-            showSuccessDialog({
-                message: 'Asset Details',
-                note: JSON.stringify(result, null, 2),
-            });
-        } catch (error) {
-            showErrorDialog({
-                message: 'Cannot get asset details',
-                note: error?.message || 'Unknown error',
-            });
-        } finally {
-            setCheckingAssets(false);
-        }
-    };
+  const handleReply = (post) => {
+    dispatch(setReplyTo(post));
+  };
 
-    const renderNewsTable = (data) => {
-        if (!Array.isArray(data)) {
-          return null;
-        }
-        return data.map((item, index) => (
-          <CatalogueTable
-          key={index}
-          onClick={() => viewAsset(item.address)}
+  return (
+    <PageLayout>
+      <ComposePost onPostCreated={fetchPosts} />
+
+      <FilterBar>
+        <FilterGroup>
+          <FilterLabel>Filter:</FilterLabel>
+          <FilterSelect
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
           >
-          <td>{ item.address }</td>
-          <td>{ item.text }</td>
-          </CatalogueTable>
-        ));
-      };
+            <option value="all">All Posts</option>
+            <option value="official">Official Only</option>
+            <option value="verified">Verified Only</option>
+            <option value="namespace">By Namespace</option>
+          </FilterSelect>
+          {filter === 'namespace' && (
+            <SearchField
+              value={inputValue}
+              onChange={handleChange}
+              placeholder="Search namespace..."
+            />
+          )}
+        </FilterGroup>
+        <CheckboxLabel>
+          <input
+            type="checkbox"
+            checked={namespaceOnly}
+            onChange={(e) => setNamespaceOnly(e.target.checked)}
+          />
+          <span>Named only</span>
+        </CheckboxLabel>
+        <SmallButton onClick={fetchPosts} disabled={loading}>
+          Refresh
+        </SmallButton>
+      </FilterBar>
 
-    return (
-      <PageLayout>
+      {filter !== 'namespace' && (
         <SingleColRow>
-            <div className="text-center">
-                <SearchField
-                    value={inputValue}
-                    onChange={handleChange}
-                    placeholder="Search"
-                />
-            </div>
+          <SearchField
+            value={inputValue}
+            onChange={handleChange}
+            placeholder="Search posts..."
+          />
         </SingleColRow>
-        <SingleColRow>
-            <div className="text-center">
-                <FieldSet legend="News Feed">
-                    <tbody>
-                        {renderNewsTable(news)}
-                    </tbody>
-                </FieldSet>
-            </div>
-        </SingleColRow>
-      </PageLayout>
-    );
+      )}
+
+      {loading && (
+        <LoadingContainer>
+          <Spinner />
+          <p>Loading posts from blockchain...</p>
+        </LoadingContainer>
+      )}
+
+      {error && <ErrorMessage>{error}</ErrorMessage>}
+
+      {!loading && !error && filteredPosts.length === 0 && (
+        <EmptyState>No posts found. Be the first to post!</EmptyState>
+      )}
+
+      {!loading &&
+        filteredPosts.map((post) => (
+          <PostItem
+            key={post.address}
+            post={post}
+            verifiedMap={verifiedMap}
+            quotedPostsCache={quotedPostsCache}
+            onViewAsset={viewAsset}
+            onQuote={handleQuote}
+            onReply={handleReply}
+          />
+        ))}
+
+      {viewingAsset && (
+        <ModalOverlay onClick={() => setViewingAsset(null)}>
+          <ModalContent onClick={(e) => e.stopPropagation()}>
+            <ModalHeader>
+              <h3>On-Chain Asset Data</h3>
+              <ModalClose onClick={() => setViewingAsset(null)}>
+                &times;
+              </ModalClose>
+            </ModalHeader>
+            <ModalBody>
+              {assetData ? (
+                <JsonBlock>{JSON.stringify(assetData, null, 2)}</JsonBlock>
+              ) : (
+                <LoadingContainer>
+                  <Spinner />
+                  <p>Loading asset data...</p>
+                </LoadingContainer>
+              )}
+            </ModalBody>
+          </ModalContent>
+        </ModalOverlay>
+      )}
+    </PageLayout>
+  );
 }
